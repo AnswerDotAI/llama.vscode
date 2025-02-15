@@ -1,6 +1,6 @@
 import {Application} from "./application";
 import {LlamaResponse} from "./llama-server";
-import vscode from "vscode";
+import * as vscode from 'vscode';
 import {Utils} from "./utils";
 
 interface CompletionDetails {
@@ -16,6 +16,53 @@ export class Completion {
     private isRequestInProgress = false
     isForcedNewRequest = false
     lastCompletion: CompletionDetails = {completion: "", position: new vscode.Position(0, 0), inputPrefix: "", inputSuffix: "", prompt: ""};
+    
+    private async getEditPrediction(
+        document: vscode.TextDocument,
+        position: vscode.Position,
+        context: vscode.InlineCompletionContext
+    ): Promise<vscode.InlineCompletionItem[] | null> {
+        if (!this.app.extConfig.edit_prediction_enabled) {
+            return null;
+        }
+
+        const recentEdits = this.app.extraContext.getRecentEdits();
+        if (recentEdits.length === 0) {
+            return null;
+        }
+
+        // Get context around cursor
+        const prefixLines = Utils.getPrefixLines(document, position, this.app.extConfig.edit_context_window);
+        const suffixLines = Utils.getSuffixLines(document, position, this.app.extConfig.edit_context_window);
+        const inputPrefix = prefixLines.join('\n') + '\n';
+        const inputSuffix = suffixLines.join('\n') + '\n';
+
+        try {
+            const prompt = await this.app.llamaServer.constructEditPredictionPrompt(
+                inputPrefix,
+                inputSuffix,
+                [...recentEdits]
+            );
+
+            const response = await this.app.llamaServer.getFIMCompletion(
+                inputPrefix,
+                inputSuffix,
+                prompt,
+                this.app.extraContext.chunks,
+                position.character
+            );
+
+            if (!response?.content || response.content.trim() === '') {
+                return null;
+            }
+
+            const completion = this.getCompletion(response.content, position);
+            return [completion];
+        } catch (err) {
+            console.error('Error getting edit prediction:', err);
+            return null;
+        }
+    }
 
     constructor(application: Application) {
         this.app = application;
@@ -23,6 +70,13 @@ export class Completion {
 
     // Class field is used instead of a function to make "this" available
     getCompletionItems = async (document: vscode.TextDocument, position: vscode.Position, context: vscode.InlineCompletionContext, token: vscode.CancellationToken): Promise<vscode.InlineCompletionList | vscode.InlineCompletionItem[] | null> => {
+        // Try edit prediction first if enabled and in automatic mode
+        if (context.triggerKind === vscode.InlineCompletionTriggerKind.Automatic) {
+            const prediction = await this.getEditPrediction(document, position, context);
+            if (prediction) {
+                return prediction;
+            }
+        }
         let group = "GET_COMPLETION_" + Date.now();
         if (!this.app.extConfig.auto && context.triggerKind == vscode.InlineCompletionTriggerKind.Automatic) {
             this.app.logger.addEventLog(group, "MANUAL_MODE_AUTOMATIC_TRIGGERING_RETURN", "")
