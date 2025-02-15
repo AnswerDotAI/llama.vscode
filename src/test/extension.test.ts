@@ -1,15 +1,12 @@
-import * as assert from 'assert';
-
-// You can import and use all API from the 'vscode' module
-// as well as import your extension to test it
+import { describe, expect, test } from '@jest/globals';
 import * as vscode from 'vscode';
-// import * as myExtension from '../../extension';
 
-// suite('Extension Test Suite', () => {
-// 	vscode.window.showInformationMessage('Start all tests.');
+jest.mock('vscode');
 
-// 	test('Sample test', () => {
-// 		assert.strictEqual(-1, [1, 2, 3].indexOf(5));
-// 		assert.strictEqual(-1, [1, 2, 3].indexOf(0));
-// 	});
-// });
+describe('Extension', () => {
+    test('vscode workspace mock works', () => {
+        const mockConfig = { get: jest.fn() };
+        (vscode.workspace.getConfiguration as jest.Mock).mockReturnValue(mockConfig);
+        expect(vscode.workspace.getConfiguration()).toBe(mockConfig);
+    });
+});
