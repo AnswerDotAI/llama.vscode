@@ -10,6 +10,12 @@ export class Configuration {
     n_prefix = 256;
     n_suffix = 64;
     n_predict = 128;
+    
+    // edit prediction configs
+    public edit_prediction_enabled = true;
+    public edit_context_window = 50;
+    public edit_debounce_ms = 300;
+    public edit_history_size = 10;
     t_max_prompt_ms = 500;
     t_max_predict_ms = 2500;
     show_info = true;
@@ -113,6 +119,12 @@ export class Configuration {
         this.disabledLanguages = config.get<string[]>("disabledLanguages") || [];
         this.enabled = Boolean(config.get<boolean>("enabled", true));
         this.languageSettings = config.get<Record<string, boolean>>('languageSettings') || {};
+
+        // Edit prediction configs
+        this.edit_prediction_enabled = Boolean(config.get<boolean>("edit_prediction_enabled", true));
+        this.edit_context_window = Number(config.get<number>("edit_context_window", 50));
+        this.edit_debounce_ms = Number(config.get<number>("edit_debounce_ms", 300));
+        this.edit_history_size = Number(config.get<number>("edit_history_size", 10));
     };
 
     getUiText = (uiText: string): string | undefined => {

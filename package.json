@@ -213,6 +213,26 @@
           "type": "string",
           "default": "<|fim_prefix|>{inputPrefix}{prompt}<|fim_suffix|>{inputSuffix}<|fim_middle|>",
           "description": "The prompt template to be used for the OpenAI compatible endpoint."
+        },
+        "llama-vscode.edit_prediction_enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable/disable edit prediction feature"
+        },
+        "llama-vscode.edit_context_window": {
+          "type": "number",
+          "default": 50,
+          "description": "Number of lines of context to consider for edit predictions"
+        },
+        "llama-vscode.edit_debounce_ms": {
+          "type": "number",
+          "default": 300,
+          "description": "Delay in milliseconds before processing edit predictions"
+        },
+        "llama-vscode.edit_history_size": {
+          "type": "number",
+          "default": 10,
+          "description": "Maximum number of recent edits to track for predictions"
         }
       }
     }
