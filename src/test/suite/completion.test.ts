@@ -3,6 +3,7 @@ import * as vscode from 'vscode';
 import { Completion } from '../../completion';
 import { Application } from '../../application';
 import { EditHistory } from '../../extra-context';
+import { LlamaResponse } from '../../llama-server';
 
 jest.mock('../../application', () => ({
     Application: {
@@ -19,7 +20,15 @@ jest.mock('../../application', () => ({
             },
             llamaServer: {
                 constructEditPredictionPrompt: jest.fn(),
-                getFIMCompletion: jest.fn()
+                getFIMCompletion: jest.fn().mockImplementation(async (
+                    inputPrefix: string,
+                    inputSuffix: string,
+                    prompt: string,
+                    chunks: any[],
+                    nindent: number
+                ): Promise<LlamaResponse | undefined> => ({
+                    content: ''
+                }))
             }
         })
     }
@@ -35,6 +44,7 @@ describe('Completion', () => {
     });
 
     test('returns edit prediction when enabled and edits available', async () => {
+        app.extConfig.edit_prediction_enabled = true;
         const recentEdits: EditHistory[] = [{
             timestamp: Date.now(),
             position: new vscode.Position(1, 0),
@@ -47,7 +57,7 @@ describe('Completion', () => {
         (app.llamaServer.constructEditPredictionPrompt as jest.Mock).mockReturnValue('test prompt');
         (app.llamaServer.getFIMCompletion as jest.Mock).mockResolvedValue({
             content: 'predicted edit'
-        } as import('../../llama-server').LlamaResponse);
+        });
 
         const result = await completion.getCompletionItems(
             { getText: () => '', lineAt: () => ({ text: '' }) } as any,
@@ -62,7 +72,30 @@ describe('Completion', () => {
 
     test('returns null for edit prediction when disabled', async () => {
         app.extConfig.edit_prediction_enabled = false;
+        (app.extraContext.getRecentEdits as jest.Mock).mockReturnValue([]);
 
+        const result = await completion.getCompletionItems(
+            { getText: () => '', lineAt: () => ({ text: '' }) } as any,
+            new vscode.Position(0, 0),
+            { triggerKind: vscode.InlineCompletionTriggerKind.Automatic } as any,
+            { isCancellationRequested: false } as any
+        );
+
+        expect(result).toBeNull();
+    });
+
+    test('falls back to normal completion with LSP completions visible', async () => {
+        app.extConfig.edit_prediction_enabled = true;
+        const recentEdits: EditHistory[] = [{
+            timestamp: Date.now(),
+            position: new vscode.Position(1, 0),
+            oldText: 'oldFunction',
+            newText: 'newFunction',
+            type: 'replace'
+        }];
+
+        (app.extraContext.getRecentEdits as jest.Mock).mockReturnValue(recentEdits);
+        
         const result = await completion.getCompletionItems(
             { getText: () => '', lineAt: () => ({ text: '' }) } as any,
             new vscode.Position(0, 0),
