@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import {Application} from "./application";
 
-interface EditHistory {
+export interface EditHistory {
     timestamp: number;
     position: vscode.Position;
     oldText: string;

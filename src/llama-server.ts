@@ -1,5 +1,7 @@
 import axios from "axios";
 import {Application} from "./application";
+import * as vscode from 'vscode';
+import { EditHistory } from './extra-context';
 
 const STATUS_OK = 200;
 
@@ -145,4 +147,32 @@ export class LlamaServer {
             this.app.extConfig.axiosRequestConfig
         );
     };
+
+    private constructPrompt(inputPrefix: string, inputSuffix: string, prompt: string): string {
+        if (this.app.extConfig.use_openai_endpoint) {
+            return this.app.extConfig.openai_prompt_template
+                .replace("{inputPrefix}", inputPrefix)
+                .replace("{inputSuffix}", inputSuffix)
+                .replace("{prompt}", prompt);
+        }
+        return `<|fim_prefix|>${inputPrefix}${prompt}<|fim_suffix|>${inputSuffix}<|fim_middle|>`;
+    }
+
+    public constructEditPredictionPrompt(inputPrefix: string, inputSuffix: string, recentEdits: EditHistory[]): string {
+        const editContext = recentEdits
+            .map(edit => {
+                switch (edit.type) {
+                    case 'replace':
+                        return `${edit.oldText} -> ${edit.newText}`;
+                    case 'insert':
+                        return `+ ${edit.newText}`;
+                    case 'delete':
+                        return `- ${edit.oldText}`;
+                }
+            })
+            .join('\n');
+
+        const prompt = `Recent edits:\n${editContext}\nPredict next edit:`;
+        return this.constructPrompt(inputPrefix, inputSuffix, prompt);
+    }
 }
