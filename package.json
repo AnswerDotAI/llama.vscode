@@ -30,6 +30,12 @@
     ],
     "commands": [
       {
+        "command": "llama-vscode.showEditPrediction",
+        "title": "Show Edit Prediction",
+        "category": "Llama",
+        "enablement": "editorTextFocus && !suggestWidgetVisible || editorTextFocus && suggestWidgetVisible && altKey"
+      },
+      {
         "command": "extension.triggerInlineCompletion",
         "title": "Trigger Inline Completion"
       },
@@ -59,6 +65,11 @@
       }
     ],
     "keybindings": [
+      {
+        "command": "llama-vscode.showEditPrediction",
+        "key": "alt",
+        "when": "editorTextFocus && suggestWidgetVisible"
+      },
       {
         "key": "tab",
         "command": "editor.action.inlineSuggest.commit",

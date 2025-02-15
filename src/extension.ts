@@ -1,8 +1,13 @@
 import * as vscode from 'vscode';
 import {Application} from "./application";
 
+import { Commands } from './commands';
+
 export function activate(context: vscode.ExtensionContext) {
-    let app = Application.getInstance();
+    const app = Application.getInstance();
+    const commands = new Commands(app);
+    commands.registerEditPredictionCommands(context);
+    
     app.architect.setStatusBar(context)
     app.architect.setOnChangeConfiguration(context);
     app.architect.setCompletionProvider(context);

@@ -70,8 +70,8 @@ export class Completion {
 
     // Class field is used instead of a function to make "this" available
     getCompletionItems = async (document: vscode.TextDocument, position: vscode.Position, context: vscode.InlineCompletionContext, token: vscode.CancellationToken): Promise<vscode.InlineCompletionList | vscode.InlineCompletionItem[] | null> => {
-        // Try edit prediction first if enabled and in automatic mode
-        if (context.triggerKind === vscode.InlineCompletionTriggerKind.Automatic) {
+        // Try edit prediction if enabled
+        if (this.app.extConfig.edit_prediction_enabled) {
             const prediction = await this.getEditPrediction(document, position, context);
             if (prediction) {
                 return prediction;

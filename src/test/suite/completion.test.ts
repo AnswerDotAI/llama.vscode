@@ -12,23 +12,37 @@ jest.mock('../../application', () => ({
                 edit_prediction_enabled: true,
                 edit_context_window: 50,
                 edit_debounce_ms: 300,
-                edit_history_size: 10
+                edit_history_size: 10,
+                auto: true,
+                n_prefix: 50,
+                n_suffix: 50,
+                DELAY_BEFORE_COMPL_REQUEST: 100,
+                max_line_suffix: 100
             },
             extraContext: {
                 getRecentEdits: jest.fn(),
-                chunks: []
+                chunks: [],
+                lastComplStartTime: Date.now(),
+                addFimContextChunks: jest.fn()
             },
             llamaServer: {
                 constructEditPredictionPrompt: jest.fn(),
-                getFIMCompletion: jest.fn().mockImplementation(async (
-                    inputPrefix: string,
-                    inputSuffix: string,
-                    prompt: string,
-                    chunks: any[],
-                    nindent: number
-                ): Promise<LlamaResponse | undefined> => ({
+                getFIMCompletion: jest.fn().mockReturnValue(Promise.resolve({
                     content: ''
                 }))
+            },
+            logger: {
+                addEventLog: jest.fn()
+            },
+            lruResultCache: {
+                getHash: jest.fn().mockReturnValue('test-hash'),
+                get: jest.fn(),
+                put: jest.fn()
+            },
+            statusbar: {
+                showThinkingInfo: jest.fn(),
+                showInfo: jest.fn(),
+                showCachedInfo: jest.fn()
             }
         })
     }
@@ -55,9 +69,9 @@ describe('Completion', () => {
 
         (app.extraContext.getRecentEdits as jest.Mock).mockReturnValue(recentEdits);
         (app.llamaServer.constructEditPredictionPrompt as jest.Mock).mockReturnValue('test prompt');
-        (app.llamaServer.getFIMCompletion as jest.Mock).mockResolvedValue({
+        (app.llamaServer.getFIMCompletion as jest.Mock).mockReturnValueOnce(Promise.resolve({
             content: 'predicted edit'
-        });
+        }));
 
         const result = await completion.getCompletionItems(
             { getText: () => '', lineAt: () => ({ text: '' }) } as any,
@@ -67,7 +81,7 @@ describe('Completion', () => {
         );
 
         expect(result).toHaveLength(1);
-        expect((result as any)[0].text).toBe('predicted edit');
+        expect((result as any)[0].insertText).toBe('predicted edit');
     });
 
     test('returns null for edit prediction when disabled', async () => {
@@ -81,7 +95,7 @@ describe('Completion', () => {
             { isCancellationRequested: false } as any
         );
 
-        expect(result).toBeNull();
+        expect(result).toEqual([]);
     });
 
     test('falls back to normal completion with LSP completions visible', async () => {
@@ -103,6 +117,6 @@ describe('Completion', () => {
             { isCancellationRequested: false } as any
         );
 
-        expect(result).toBeNull();
+        expect(result).toEqual([]);
     });
 });

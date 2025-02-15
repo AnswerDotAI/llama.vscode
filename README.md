@@ -20,6 +20,30 @@ Local LLM-assisted text completion extension for VS Code
 - Ring context with chunks from open and edited files and yanked text
 - [Supports very large contexts even on low-end hardware via smart context reuse](https://github.com/ggerganov/llama.cpp/pull/9787)
 - Display performance stats
+- Edit prediction powered by Zeta model
+
+## Edit Prediction
+
+The extension now supports intelligent edit prediction based on your recent code changes, similar to Zed's approach. This feature uses the Zeta model to analyze your editing patterns and suggest relevant code completions.
+
+### How it works
+- Tracks your recent edits to understand coding patterns
+- Uses the Zeta model to generate context-aware predictions
+- Displays predictions as inline suggestions
+- Press alt/alt-tab to trigger predictions when LSP completions are active
+
+### Configuration
+
+The following settings can be configured in your VS Code settings:
+
+- `llama-vscode.edit_prediction_enabled`: Enable/disable edit prediction feature (default: true)
+- `llama-vscode.edit_context_window`: Number of lines of context to consider for edit predictions (default: 50)
+- `llama-vscode.edit_debounce_ms`: Delay in milliseconds before processing edit predictions (default: 300)
+- `llama-vscode.edit_history_size`: Maximum number of recent edits to track for predictions (default: 10)
+
+### References
+- [Zed blog post on edit prediction](https://zed.dev/blog/edit-prediction)
+- [Zeta model on Hugging Face](https://huggingface.co/zed-industries/zeta)
 
 ## Installation
 

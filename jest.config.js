@@ -9,5 +9,11 @@ module.exports = {
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
   moduleNameMapper: {
     '^vscode$': '<rootDir>/src/test/mock/vscode.ts'
+  },
+  setupFiles: ['<rootDir>/jest.setup.js'],
+  transform: {
+    '^.+\\.tsx?$': ['ts-jest', {
+      tsconfig: 'tsconfig.json'
+    }]
   }
 };
