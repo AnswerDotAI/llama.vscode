@@ -23,7 +23,10 @@ export enum InlineCompletionTriggerKind {
 }
 
 export const workspace = {
-    getConfiguration: jest.fn()
+    getConfiguration: jest.fn(),
+    onDidChangeTextDocument: jest.fn().mockImplementation(callback => ({
+        dispose: jest.fn()
+    }))
 };
 
 export const window = {

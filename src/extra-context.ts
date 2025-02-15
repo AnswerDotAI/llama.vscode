@@ -1,7 +1,18 @@
 import * as vscode from 'vscode';
 import {Application} from "./application";
 
+interface EditHistory {
+    timestamp: number;
+    position: vscode.Position;
+    oldText: string;
+    newText: string;
+    type: 'insert' | 'delete' | 'replace';
+}
+
 export class ExtraContext {
+    private recentEdits: EditHistory[] = [];
+    private readonly MAX_EDIT_HISTORY = 10;
+    private editDebounceTimeout?: NodeJS.Timeout;
     private app: Application
     chunks: any[] = [];
     chunksLines: string[][] = []; //lines of each chunk are needed for measuring the distance
@@ -13,7 +24,58 @@ export class ExtraContext {
     private fileSaveTimeout: NodeJS.Timeout | undefined;
 
     constructor(application: Application) {
-        this.app = application
+        this.app = application;
+        // Set up text document change listener
+        vscode.workspace.onDidChangeTextDocument(e => {
+            const edit = this.createEditFromEvent(e);
+            if (edit) {
+                this.trackEdit(edit);
+            }
+        });
+    }
+
+    private createEditFromEvent(e: vscode.TextDocumentChangeEvent): EditHistory | undefined {
+        if (e.contentChanges.length === 0) {
+            return undefined;
+        }
+
+        const change = e.contentChanges[0];
+        const type = this.determineEditType(change);
+        
+        return {
+            timestamp: Date.now(),
+            position: change.range.start,
+            oldText: change.rangeLength > 0 ? e.document.getText(change.range) : '',
+            newText: change.text,
+            type
+        };
+    }
+
+    private determineEditType(change: vscode.TextDocumentContentChangeEvent): 'insert' | 'delete' | 'replace' {
+        if (change.rangeLength === 0 && change.text.length > 0) {
+            return 'insert';
+        } else if (change.rangeLength > 0 && change.text.length === 0) {
+            return 'delete';
+        } else {
+            return 'replace';
+        }
+    }
+
+    trackEdit(edit: EditHistory) {
+        if (this.editDebounceTimeout) {
+            clearTimeout(this.editDebounceTimeout);
+        }
+
+        this.editDebounceTimeout = setTimeout(() => {
+            this.recentEdits.unshift(edit);
+            if (this.recentEdits.length > this.MAX_EDIT_HISTORY) {
+                this.recentEdits.pop();
+            }
+        }, this.app.extConfig.DELAY_BEFORE_COMPL_REQUEST);
+    }
+
+    getRecentEdits(): readonly EditHistory[] {
+        return this.recentEdits;
     }
 
     periodicRingBufferUpdate = () => {
